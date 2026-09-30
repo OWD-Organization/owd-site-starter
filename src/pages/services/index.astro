@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { SITE } from '../../config/site';
+import { SERVICES } from '../../data/services';
+import { breadcrumbNode } from '../../lib/schema';
+import { withPolicy } from '../../lib/urls';
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'Services', path: '/services/' }];
+const title = `Plumbing Services in ${SITE.primaryArea} | ${SITE.name}`;
+const description = `Browse every plumbing service from ${SITE.name}: drain cleaning, repairs, and installs across ${SITE.primaryArea}. Clear prices up front. Call today.`;
+---
+<Base title={title} description={description} schema={[breadcrumbNode(crumbs)]}>
+  <Breadcrumbs crumbs={crumbs} />
+  <section class="page-hero">
+    <div class="container">
+      <h1>Plumbing services in {SITE.primaryArea}</h1>
+      <p class="lede">Every service has its own page with details and common questions.</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <ul class="card-grid">
+        {SERVICES.map((s) => (
+          <li class="card">
+            <h2><a href={withPolicy(`/services/${s.slug}/`)}>{s.name}</a></h2>
+            <p>{s.summary}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</Base>

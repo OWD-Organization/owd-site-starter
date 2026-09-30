@@ -1,0 +1,32 @@
+---
+description: OWD SEO build standards. Mandatory for every page, component, and config change in this repo.
+alwaysApply: true
+---
+
+# OWD SEO standards (mandatory)
+
+Full rules: `docs/build-standards.md` and `docs/post-build-seo-check.md`. Read `AGENTS.md`.
+
+## Gate
+- `npm run build` runs `astro build && node scripts/seo-gate.mjs`.
+- Previews ALWAYS publish: with SITE_INDEXABLE unset, critical issues print as "CRITICAL (preview: not blocking)" and the build succeeds.
+- Only launch is blocked: SITE_INDEXABLE=true (Vercel Production only) fails the build on any critical issue.
+- Before finishing any task run `npm run seo:strict` and fix every critical item. Never weaken the gate to pass.
+
+## Must
+- All business facts come from `src/config/site.ts` only. Never hand-type NAP or phone numbers into pages.
+- No invented business facts: no made-up reviews, ratings, aggregateRating, license numbers, street address, awards, years, or areas.
+- Client-facing previews contain no internal notes, TODOs, draft labels, lorem ipsum, or "replace this" text.
+- Every page: one title (30-60 chars; homepage = service + area + brand), description 140-160 (no em dashes), one absolute self-referencing canonical on the production host with a trailing slash, OG + Twitter tags, `<html lang>` from config, exactly one h1.
+- JSON-LD from config: LocalBusiness subtype + WebSite sitewide, BreadcrumbList inner pages, Service on service pages, FAQPage only where the FAQ is visible.
+- Noindex three ways on previews (meta, dynamic robots.txt, X-Robots-Tag for *.vercel.app). No static public/robots.txt.
+- Images in repo via astro:assets; no hotlinks; alt on content images; width/height; hero eager + fetchpriority high.
+- Trailing slash always; internal links in final form; zero broken links; nothing but the site in dist/ (no .md, .pdf, drafts, inspiration/ in public/).
+- GTM only when indexable, ID from PUBLIC_GTM_ID. Preview-only widgets only on previews.
+- Content visible without JS (.reveal pattern), landmarks, skip link, 44px tap targets.
+
+## Nav
+- Services AND Service Area are both dropdowns on desktop and nested the same way in the mobile menu.
+- Every top-level nav item, dropdown triggers included, uses the one shared class `.nav-link`. Never style nav with structural selectors.
+- Only one dropdown open at a time; triggers are buttons with aria-expanded.
+- Mobile hamburger has a visible "MENU" label. Header phone on desktop; tap-to-call button on mobile.

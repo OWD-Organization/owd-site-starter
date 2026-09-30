@@ -1,0 +1,116 @@
+---
+/**
+ * NAV RULES (mandatory, see AGENTS.md):
+ * - Services AND Service Area are both dropdowns on desktop, nested the same way in the mobile menu.
+ * - Every top-level item, dropdown triggers included, uses the ONE shared class `.nav-link`.
+ *   Style with that class, never with structural selectors (li:nth-child, nav > ul > li > a).
+ * - Only one dropdown open at a time. Triggers are <button>s that toggle aria-expanded.
+ * - The mobile hamburger shows a visible "MENU" label.
+ * - The header phone number shows on desktop; a tap-to-call button shows on mobile.
+ */
+import { SITE } from '../config/site';
+import { SERVICES } from '../data/services';
+import { withPolicy } from '../lib/urls';
+
+const here = withPolicy(Astro.url.pathname);
+const cur = (p: string) => (withPolicy(p) === here ? 'page' : undefined);
+const inSection = (p: string) => here.startsWith(withPolicy(p));
+const tel = `tel:${SITE.phone.e164}`;
+const drops = [
+  {
+    id: 'services',
+    label: 'Services',
+    base: '/services/',
+    all: 'All services',
+    items: SERVICES.map((s) => ({ name: s.name, href: withPolicy(`/services/${s.slug}/`) })),
+  },
+  {
+    id: 'service-area',
+    label: 'Service Area',
+    base: '/service-area/',
+    all: 'All service areas',
+    items: SITE.areaServed.map((t) => ({ name: t.name, href: withPolicy(`/service-area/${t.slug}/`) })),
+  },
+];
+---
+<header class="site-header">
+  <div class="container header-bar">
+    <a class="brand" href={withPolicy('/')}>{SITE.name}</a>
+
+    <nav id="site-nav" class="site-nav" aria-label="Primary">
+      <ul class="nav-list">
+        <li class="nav-item"><a class="nav-link" href={withPolicy('/')} aria-current={cur('/')}>Home</a></li>
+        {drops.map((d) => (
+          <li class="nav-item has-drop" data-drop>
+            <button
+              class:list={['nav-link', 'nav-drop-toggle', { 'is-current': inSection(d.base) }]}
+              type="button"
+              aria-expanded="false"
+              aria-controls={`drop-${d.id}`}
+            >
+              {d.label}
+              <svg class="chevron" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M5.2 7.5 10 12.3l4.8-4.8 1.2 1.2L10 14.7 4 8.7z" /></svg>
+            </button>
+            <ul id={`drop-${d.id}`} class="nav-drop">
+              <li><a class="nav-drop-link nav-drop-all" href={withPolicy(d.base)} aria-current={cur(d.base)}>{d.all}</a></li>
+              {d.items.map((i) => (
+                <li><a class="nav-drop-link" href={i.href} aria-current={cur(i.href)}>{i.name}</a></li>
+              ))}
+            </ul>
+          </li>
+        ))}
+        <li class="nav-item"><a class="nav-link" href={withPolicy('/about/')} aria-current={cur('/about/')}>About</a></li>
+        <li class="nav-item"><a class="nav-link" href={withPolicy('/contact/')} aria-current={cur('/contact/')}>Contact</a></li>
+      </ul>
+    </nav>
+
+    <div class="header-tools">
+      <a class="header-phone" href={tel}>
+        <span class="header-phone-label">Call</span>
+        <span class="header-phone-number">{SITE.phone.display}</span>
+      </a>
+      <a class="header-call btn btn-primary" href={tel} aria-label={`Call ${SITE.phone.display}`}>
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z" /></svg>
+        <span>Call</span>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="nav-toggle-label">MENU</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  const header = document.querySelector<HTMLElement>('.site-header');
+  const toggle = document.querySelector<HTMLButtonElement>('.nav-toggle');
+  const drops = [...document.querySelectorAll<HTMLElement>('[data-drop]')];
+  const setDrop = (d: HTMLElement, open: boolean) => {
+    d.classList.toggle('is-open', open);
+    d.querySelector('.nav-drop-toggle')?.setAttribute('aria-expanded', String(open));
+  };
+  const closeAll = (except?: HTMLElement) => drops.forEach((d) => d !== except && setDrop(d, false));
+  for (const d of drops) {
+    d.querySelector('.nav-drop-toggle')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = !d.classList.contains('is-open');
+      closeAll(d); // only one dropdown open at a time
+      setDrop(d, open);
+    });
+  }
+  toggle?.addEventListener('click', () => {
+    const open = !header?.classList.contains('menu-open');
+    header?.classList.toggle('menu-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    if (!open) closeAll();
+  });
+  document.addEventListener('click', (e) => {
+    if (!(e.target instanceof Node) || !header?.contains(e.target)) closeAll();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const openDrop = drops.find((d) => d.classList.contains('is-open'));
+    closeAll();
+    openDrop?.querySelector<HTMLButtonElement>('.nav-drop-toggle')?.focus();
+  });
+</script>

@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { SITE } from '../../config/site';
+import { breadcrumbNode } from '../../lib/schema';
+import { withPolicy } from '../../lib/urls';
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'Service Area', path: '/service-area/' }];
+const title = `Service Area: Towns We Serve | ${SITE.name}`;
+const description = `See the towns ${SITE.name} serves around ${SITE.primaryArea}. Each town page covers local service, response times, and how to book. Call us today.`;
+---
+<Base title={title} description={description} schema={[breadcrumbNode(crumbs)]}>
+  <Breadcrumbs crumbs={crumbs} />
+  <section class="page-hero">
+    <div class="container">
+      <h1>Towns we serve around {SITE.primaryArea}</h1>
+      <p class="lede">Pick your town for local details.</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <ul class="chip-list">
+        {SITE.areaServed.map((t) => <li><a href={withPolicy(`/service-area/${t.slug}/`)}>{t.name}</a></li>)}
+      </ul>
+    </div>
+  </section>
+</Base>

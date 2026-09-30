@@ -1,0 +1,19 @@
+---
+// Branded 404. Astro static output writes dist/404.html, which Vercel serves with HTTP 404.
+import Base from '../layouts/Base.astro';
+import { SITE } from '../config/site';
+import { withPolicy } from '../lib/urls';
+---
+<Base title={`Page not found | ${SITE.name}`} description={`That page is not on the ${SITE.name} site. Try our services, the towns we serve, or call ${SITE.phone.display} and we will help you right away.`} noCanonical>
+  <section class="page-hero">
+    <div class="container">
+      <h1>That page isn’t here</h1>
+      <p class="lede">The link may be old. These pages can help:</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href={withPolicy('/services/')}>Our services</a>
+        <a class="btn btn-line" href={withPolicy('/service-area/')}>Service area</a>
+        <a class="btn btn-line" href={`tel:${SITE.phone.e164}`}>Call {SITE.phone.display}</a>
+      </div>
+    </div>
+  </section>
+</Base>

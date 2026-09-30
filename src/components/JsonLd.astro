@@ -1,0 +1,7 @@
+---
+import { graph } from '../lib/schema';
+interface Props { nodes?: unknown[] }
+const { nodes = [] } = Astro.props;
+const data = graph(nodes);
+---
+<script type="application/ld+json" set:html={JSON.stringify(data)} />

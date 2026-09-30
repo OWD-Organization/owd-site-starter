@@ -1,0 +1,50 @@
+---
+import { SITE } from '../config/site';
+import { SERVICES } from '../data/services';
+import { withPolicy } from '../lib/urls';
+const year = new Date().getFullYear(); // computed, never typed
+const a = SITE.address;
+const locality = [a.city, [a.region, a.postal].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+---
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <p class="footer-brand">{SITE.name}</p>
+      <p>{SITE.tagline}</p>
+      <address>
+        {a.street && <>{a.street}<br /></>}
+        {locality}<br />
+        <a href={`tel:${SITE.phone.e164}`}>{SITE.phone.display}</a><br />
+        {SITE.email && <a href={`mailto:${SITE.email}`}>{SITE.email}</a>}
+      </address>
+      <p>{SITE.hoursText}</p>
+      {SITE.license && <p>License: {SITE.license}</p>}
+    </div>
+    <nav aria-label="Services">
+      <p class="footer-heading">Services</p>
+      <ul>
+        <li><a href={withPolicy('/services/')}>All services</a></li>
+        {SERVICES.map((s) => <li><a href={withPolicy(`/services/${s.slug}/`)}>{s.name}</a></li>)}
+      </ul>
+    </nav>
+    <nav aria-label="Service area">
+      <p class="footer-heading">Service Area</p>
+      <ul>
+        <li><a href={withPolicy('/service-area/')}>All service areas</a></li>
+        {SITE.areaServed.map((t) => <li><a href={withPolicy(`/service-area/${t.slug}/`)}>{t.name}</a></li>)}
+      </ul>
+    </nav>
+    <nav aria-label="Company">
+      <p class="footer-heading">Company</p>
+      <ul>
+        <li><a href={withPolicy('/about/')}>About</a></li>
+        <li><a href={withPolicy('/contact/')}>Contact</a></li>
+        {SITE.gbpUrl && <li><a href={SITE.gbpUrl} rel="noopener">Google Business Profile</a></li>}
+        {SITE.sameAs.map((u) => <li><a href={u} rel="noopener">{new URL(u).hostname.replace(/^www\./, '')}</a></li>)}
+      </ul>
+    </nav>
+  </div>
+  <div class="container footer-legal">
+    <p>&copy; {year} {SITE.legalName}</p>
+  </div>
+</footer>

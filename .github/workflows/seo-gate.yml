@@ -1,0 +1,32 @@
+name: SEO gate (strict, non-blocking)
+
+# Runs the build plus the gate in strict mode on every PR. It reports critical issues as a
+# failed status, but it is NOT a required check: previews always publish and merging is never
+# blocked by it. Only a launch build (SITE_INDEXABLE=true in Vercel Production) blocks.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seo-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build + strict SEO gate
+        run: npm run seo:strict
+      - name: Gate self-test
+        run: npm run test:gate
+      - name: Upload gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-gate-report
+          path: .owd/seo-gate-report.*

@@ -1,0 +1,30 @@
+---
+import Base from '../layouts/Base.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import { SITE } from '../config/site';
+import { breadcrumbNode } from '../lib/schema';
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'Contact', path: '/contact/' }];
+const title = `Contact ${SITE.name} | Call or Book Online`;
+const description = `Contact ${SITE.name} to book a plumber in ${SITE.primaryArea}. Call ${SITE.phone.display} or send a request and we will reply fast. Honest pricing on every visit.`;
+---
+<Base title={title} description={description} schema={[breadcrumbNode(crumbs)]}>
+  <Breadcrumbs crumbs={crumbs} />
+  <section class="page-hero">
+    <div class="container">
+      <h1>Contact {SITE.name}</h1>
+      <p class="lede">Call for the fastest answer.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href={`tel:${SITE.phone.e164}`}>Call {SITE.phone.display}</a>
+      </div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container narrow">
+      <h2>Hours</h2>
+      <p>{SITE.hoursText}</p>
+      <h2>Email</h2>
+      <p><a href={`mailto:${SITE.email}`}>{SITE.email}</a></p>
+      <p class="note">Example form area. Replace this with the client’s lead form, then test that a lead arrives end to end before launch.</p>
+    </div>
+  </section>
+</Base>

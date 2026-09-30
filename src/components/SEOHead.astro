@@ -1,0 +1,42 @@
+---
+/**
+ * Every page passes title + description. Canonical is ALWAYS the production host
+ * (SITE.url), self-referencing, in the site's trailing-slash policy. Previews are
+ * noindexed (meta robots here + robots.txt + X-Robots-Tag in vercel.json).
+ */
+import { SITE } from '../config/site';
+import { INDEXABLE } from '../lib/indexable';
+import { absolute, isNoindexPath } from '../lib/urls';
+
+interface Props {
+  title: string;
+  description: string;
+  ogImage?: string;
+  noCanonical?: boolean; // only for the 404 page
+}
+const { title, description, ogImage = SITE.defaultOgImage, noCanonical = false } = Astro.props;
+const canonical = absolute(Astro.url.pathname);
+const img = new URL(ogImage, SITE.url).href;
+const noindex = !INDEXABLE || isNoindexPath(Astro.url.pathname);
+---
+<title>{title}</title>
+<meta name="description" content={description} />
+{!noCanonical && <link rel="canonical" href={canonical} />}
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content={SITE.name} />
+<meta property="og:locale" content={SITE.locale} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+{!noCanonical && <meta property="og:url" content={canonical} />}
+<meta property="og:image" content={img} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={img} />
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />

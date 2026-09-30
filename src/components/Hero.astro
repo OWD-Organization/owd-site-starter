@@ -1,0 +1,20 @@
+---
+/** Hero: H1, subhead, primary CTA + click-to-call. The hero image is the LCP: eager + fetchpriority high. */
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import { SITE } from '../config/site';
+import { withPolicy } from '../lib/urls';
+interface Props { heading: string; lede: string; image: ImageMetadata; alt: string }
+const { heading, lede, image, alt } = Astro.props;
+---
+<section class="hero">
+  <Image class="hero-img" src={image} alt={alt} widths={[640, 960, 1280, 1920]} sizes="100vw" loading="eager" fetchpriority="high" />
+  <div class="container hero-copy">
+    <h1>{heading}</h1>
+    <p class="lede">{lede}</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href={withPolicy('/contact/')}>Request service</a>
+      <a class="btn btn-light" href={`tel:${SITE.phone.e164}`}>Call {SITE.phone.display}</a>
+    </div>
+  </div>
+</section>

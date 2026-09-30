@@ -1,0 +1,39 @@
+---
+import Base from '../../layouts/Base.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { SITE } from '../../config/site';
+import { SERVICES } from '../../data/services';
+import { breadcrumbNode } from '../../lib/schema';
+import { withPolicy } from '../../lib/urls';
+
+export function getStaticPaths() {
+  return SITE.areaServed.map((town) => ({ params: { slug: town.slug }, props: { town } }));
+}
+const { town } = Astro.props as { town: { name: string; slug: string } };
+const path = `/service-area/${town.slug}/`;
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'Service Area', path: '/service-area/' }, { name: town.name, path }];
+const title = `${SITE.primaryService} in ${town.name} | ${SITE.name}`;
+const description = `Need a ${SITE.primaryService.toLowerCase()} in ${town.name}? ${SITE.name} handles repairs, drains, and installs for ${town.name} homes with up-front prices. Call to book today.`;
+---
+<Base title={title} description={description} schema={[breadcrumbNode(crumbs)]}>
+  <Breadcrumbs crumbs={crumbs} />
+  <section class="page-hero">
+    <div class="container">
+      <h1>{SITE.primaryService} in {town.name}</h1>
+      <p class="lede">Local service for {town.name} homes and businesses.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href={withPolicy('/contact/')}>Request service</a>
+        <a class="btn btn-line" href={`tel:${SITE.phone.e164}`}>Call {SITE.phone.display}</a>
+      </div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container narrow">
+      <p>Example town page. Write unique local copy for each town: neighborhoods, common local plumbing issues, and real local jobs with photos. Do not copy one town page into another.</p>
+      <h2>Services in {town.name}</h2>
+      <ul>
+        {SERVICES.map((s) => <li><a href={withPolicy(`/services/${s.slug}/`)}>{s.name}</a></li>)}
+      </ul>
+    </div>
+  </section>
+</Base>

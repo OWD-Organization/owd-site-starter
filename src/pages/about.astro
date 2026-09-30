@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import { SITE } from '../config/site';
+import { breadcrumbNode } from '../lib/schema';
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'About', path: '/about/' }];
+const title = `About ${SITE.name} | Local ${SITE.primaryService}`;
+const description = `Meet ${SITE.name}, a local ${SITE.primaryService.toLowerCase()} serving ${SITE.primaryArea}. Learn who we are, how we work, and why neighbors trust us. Call us today.`;
+---
+<Base title={title} description={description} schema={[breadcrumbNode(crumbs)]}>
+  <Breadcrumbs crumbs={crumbs} />
+  <section class="page-hero">
+    <div class="container">
+      <h1>About {SITE.name}</h1>
+      <p class="lede">{SITE.tagline}</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container narrow">
+      <p>Example About page. Replace with the owner’s real story, credentials, and photos. Only use facts the client has confirmed.</p>
+      <h2>Contact details</h2>
+      <p>
+        {SITE.address.city}, {SITE.address.region} {SITE.address.postal}<br />
+        <a href={`tel:${SITE.phone.e164}`}>{SITE.phone.display}</a><br />
+        {SITE.hoursText}
+      </p>
+    </div>
+  </section>
+</Base>

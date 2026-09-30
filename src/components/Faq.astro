@@ -1,0 +1,16 @@
+---
+/** Visible FAQ. Pair with faqNode(faqs) in the page's JSON-LD: FAQPage only where the FAQ is visible. */
+interface Props { faqs: { q: string; a: string }[]; heading?: string }
+const { faqs, heading = 'Frequently asked questions' } = Astro.props;
+---
+<section class="section faq reveal" aria-labelledby="faq-heading">
+  <div class="container">
+    <h2 id="faq-heading">{heading}</h2>
+    {faqs.map((f) => (
+      <details class="faq-item">
+        <summary>{f.q}</summary>
+        <p>{f.a}</p>
+      </details>
+    ))}
+  </div>
+</section>

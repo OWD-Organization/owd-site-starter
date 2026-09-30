@@ -1,0 +1,48 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import { SITE } from '../config/site';
+import { SERVICES } from '../data/services';
+import { withPolicy } from '../lib/urls';
+import hero from '../assets/hero.jpg';
+
+// Homepage title = primary service + primary area + brand. Never "Home" or "Logo".
+const title = `${SITE.primaryService} in ${SITE.primaryArea} | ${SITE.name}`;
+const description = `${SITE.name} offers licensed, local plumbing repair and installs in ${SITE.primaryArea}. Up-front prices and friendly techs. Call or book online today.`;
+---
+<Base title={title} description={description}>
+  <Hero
+    heading={`${SITE.primaryService} in ${SITE.primaryArea}`}
+    lede={SITE.tagline}
+    image={hero}
+    alt={`${SITE.name} service van in ${SITE.primaryArea}`}
+  />
+  <section class="section reveal">
+    <div class="container">
+      <h2>Services</h2>
+      <ul class="card-grid">
+        {SERVICES.map((s) => (
+          <li class="card">
+            <h3><a href={withPolicy(`/services/${s.slug}/`)}>{s.name}</a></h3>
+            <p>{s.summary}</p>
+          </li>
+        ))}
+      </ul>
+      <p><a class="btn btn-line" href={withPolicy('/services/')}>See all services</a></p>
+    </div>
+  </section>
+  <section class="section section-alt reveal">
+    <div class="container">
+      <h2>Areas we serve</h2>
+      <ul class="chip-list">
+        {SITE.areaServed.map((t) => <li><a href={withPolicy(`/service-area/${t.slug}/`)}>{t.name}</a></li>)}
+      </ul>
+    </div>
+  </section>
+  <section class="section reveal">
+    <div class="container narrow">
+      <h2>Why customers call us</h2>
+      <p>Example section. Replace with real proof the client has confirmed: years in business, badges, and real testimonials. Never invent reviews or ratings.</p>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,37 @@
+---
+import Base from '../../layouts/Base.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import Faq from '../../components/Faq.astro';
+import { SITE } from '../../config/site';
+import { SERVICES, type Service } from '../../data/services';
+import { breadcrumbNode, serviceNode, faqNode } from '../../lib/schema';
+import { withPolicy } from '../../lib/urls';
+
+export function getStaticPaths() {
+  return SERVICES.map((service) => ({ params: { slug: service.slug }, props: { service } }));
+}
+const { service } = Astro.props as { service: Service };
+const path = `/services/${service.slug}/`;
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'Services', path: '/services/' }, { name: service.name, path }];
+const schema = [breadcrumbNode(crumbs), serviceNode(service.name, path, service.description)];
+if (service.faqs.length) schema.push(faqNode(service.faqs)); // FAQ is rendered below
+---
+<Base title={service.title} description={service.description} schema={schema}>
+  <Breadcrumbs crumbs={crumbs} />
+  <section class="page-hero">
+    <div class="container">
+      <h1>{service.name} in {SITE.primaryArea}</h1>
+      <p class="lede">{service.summary}</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href={withPolicy('/contact/')}>Request service</a>
+        <a class="btn btn-line" href={`tel:${SITE.phone.e164}`}>Call {SITE.phone.display}</a>
+      </div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container narrow">
+      {service.body.map((p) => <p>{p}</p>)}
+    </div>
+  </section>
+  {service.faqs.length > 0 && <Faq faqs={service.faqs} />}
+</Base>

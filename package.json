@@ -1,0 +1,23 @@
+{
+  "name": "owd-site-starter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "OUTWORK'em DIGITAL starter for client sites: Astro static output on Vercel, SEO built in, with a build-time SEO gate.",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && node scripts/seo-gate.mjs",
+    "build:only": "astro build",
+    "seo:gate": "node scripts/seo-gate.mjs",
+    "seo:strict": "astro build && node scripts/seo-gate.mjs --strict",
+    "seo:launch-check": "SITE_INDEXABLE=true astro build && SITE_INDEXABLE=true node scripts/seo-gate.mjs",
+    "seo:live": "node scripts/seo-live.mjs",
+    "test:gate": "node scripts/test-gate.mjs",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.3.5"
+  }
+}
