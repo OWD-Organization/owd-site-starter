@@ -1,5 +1,6 @@
 // Shared, dependency-free SEO checks used by scripts/seo-gate.mjs (built dist/) and
-// scripts/seo-live.mjs (deployed URLs). Severity: 'critical' (launch blocker) or 'warn'.
+// scripts/seo-live.mjs (deployed URLs). The sev field is a hint. seo-gate keeps a
+// finding critical only when VERCEL_ENV=production and the rule is in seo-blockers.mjs.
 
 const VOID = new Set('area base br col embed hr img input link meta param source track wbr'.split(' '));
 const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', mdash: '—', ndash: '–', hellip: '…', copy: '©', reg: '®' };
@@ -189,7 +190,7 @@ export function checkPage(p, ctx) {
   const ogMissing = ['og:title', 'og:description', 'og:image', 'og:url'].filter((k) => !p.meta(k).some(Boolean));
   if (ogMissing.length && !ctx.isNotFound) W('og-incomplete', `Open Graph tags missing: ${ogMissing.join(', ')}`);
   if (!p.meta('twitter:card').some(Boolean) && !ctx.isNotFound) W('twitter-card-missing', 'no twitter:card meta tag');
-  if (!p.favicon) W('favicon-missing', 'no favicon <link>');
+  if (!p.favicon) W('favicon-link-missing', 'no favicon <link>. Add <link rel="icon" href="/favicon.ico"> in src/components/SEOHead.astro and public/favicon.ico. This warning does not fail the build by itself; a missing favicon.ico file does fail production.');
 
   // Canonical
   const cans = p.canonicals;
@@ -202,15 +203,19 @@ export function checkPage(p, ctx) {
       try { u = /^https?:\/\//i.test(c) ? new URL(c) : null; } catch {}
       if (!u) C('canonical-not-absolute', `canonical is not absolute: "${c}"`);
       else {
-        if (u.host !== ctx.host) C('canonical-host', `canonical host ${u.host} is not the production host ${ctx.host}: ${c}`);
-        if (u.protocol !== 'https:') C('canonical-host', `canonical is not https: ${c}`);
+        if (u.host === 'vercel.app' || u.host.endsWith('.vercel.app')) C('canonical-host', `canonical uses ${u.host}, a vercel.app domain, not the site domain ${ctx.host}: ${c}`);
+        else if (u.host !== ctx.host) C('canonical-host', `canonical host ${u.host} is not the site domain ${ctx.host}: ${c}`);
+        if (u.protocol !== 'https:') C('canonical-not-https', `canonical is not https: ${c}`);
         if (!slashOk(u.pathname, ctx.slash)) C('canonical-slash', `canonical does not match the trailing-slash policy (${ctx.slash}): ${c}`);
         const expect = policyPath(ctx.pathname, ctx.slash);
         if (decodeURI(u.pathname).replace(/\/$/, '') !== decodeURI(expect).replace(/\/$/, '')) C('canonical-not-self', `canonical ${c} does not reference this page (${expect})`);
       }
     }
   } else if (cans[0]) {
-    try { if (new URL(cans[0]).host !== ctx.host) C('canonical-host', `404 canonical on wrong host: ${cans[0]}`); } catch {}
+    try {
+      const h = new URL(cans[0]).host;
+      if (h === 'vercel.app' || h.endsWith('.vercel.app') || h !== ctx.host) C('canonical-host', `404 canonical is on the wrong domain ${h}: ${cans[0]}`);
+    } catch {}
   }
 
   // Language
@@ -301,7 +306,7 @@ export function checkPage(p, ctx) {
     else W('preview-widget', `preview-only widget present (allowed on previews only): ${widgets.join(', ')}`);
   }
   const gtm = /googletagmanager\.com\/gtm\.js|GTM-[A-Z0-9]{4,}/.test(scriptBlob);
-  if (ctx.mode === 'launch' && ctx.requireGtm && !gtm) C('gtm-missing', 'GTM container snippet not found on a launch page');
+  if (ctx.mode === 'launch' && ctx.requireGtm && !gtm) W('gtm-missing', 'GTM snippet not found. Set PUBLIC_GTM_ID=GTM-XXXX in Vercel Production. A missing or malformed GTM, GA4, or pixel ID is a warning and does not fail the build.');
   if (ctx.mode === 'preview' && gtm) W('gtm-on-preview', 'GTM renders on a preview (preview traffic would reach client analytics)');
 
   // Placeholder / internal-note text

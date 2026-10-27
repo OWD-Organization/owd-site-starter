@@ -8,8 +8,10 @@
  * has confirmed (match the Google Business Profile exactly). Do not invent facts:
  * if you do not know a value, leave it empty/null and ask.
  *
- * The SEO gate treats these example values as placeholders. They are allowed on a
- * preview, and they BLOCK the launch build (SITE_INDEXABLE=true) until replaced.
+ * Example values are allowed while you build. A Vercel production deploy
+ * (VERCEL_ENV=production) fails if they show up in the HTML as TODO, lorem ipsum,
+ * a 555 phone number, example.com, or a #TODO link. SITE_INDEXABLE only controls
+ * noindex. It does not, by itself, fail the build.
  */
 export const SITE = {
   // Production origin: final host (www OR apex, pick one), https, no trailing slash.

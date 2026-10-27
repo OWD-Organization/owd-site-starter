@@ -12,14 +12,17 @@ follow our SEO build standards. **They are mandatory, not suggestions.**
 `npm run build` = `astro build && node scripts/seo-gate.mjs`. The gate scans `dist/` and prints a
 per-page report to the build log (also saved to `.owd/seo-gate-report.txt`, never deployed).
 
-- **Previews always publish.** With `SITE_INDEXABLE` unset (every preview), critical issues print
-  as `CRITICAL (preview: not blocking)` and the build still succeeds. Work can always be saved and previewed.
-- **Only launch is blocked.** With `SITE_INDEXABLE=true` (set only in Vercel Production at launch),
-  any critical issue fails the build.
-- Before you finish any task, run `npm run seo:strict` (fails on any critical issue regardless of the
-  flag) and fix every critical item it reports. The GitHub Action runs the same check on PRs as a
-  non-blocking status. Treat a red check as your bug. Do not weaken the gate to make it pass.
-- Also run `npm run test:gate` if you touch `scripts/`.
+- **Non-production never blocks.** Local, preview, staging, and the PR Action (`VERCEL_ENV` is not
+  `production`) print every issue as a warning and exit 0.
+- **Production fails only on the list in the README SOP.** `VERCEL_ENV=production` (Vercel Production
+  deploys only) exits 1 for: render failure, noindex left on while `SITE_INDEXABLE=true`, indexable
+  pages while the flag is off, canonical or sitemap on the wrong domain, broken links or key-page 404s,
+  placeholder output (TODO, lorem ipsum, 555 numbers, example.com, #TODO), dead form/booking targets,
+  secrets in the build, a missing favicon, and a missing branded 404. GTM, GA4, pixels, titles,
+  descriptions, OG, alt, and schema are warnings.
+- `SITE_INDEXABLE` only controls noindex, `robots.txt`, and GTM. Set it to `true` in Vercel Production
+  on launch day. Do not set it in GitHub. Do not add a stricter exit flag.
+- Run `npm run test:gate` if you touch `scripts/`. The PR Action must stay warnings-only.
 
 ## Key rules (short form)
 
@@ -66,5 +69,6 @@ per-page report to the build log (also saved to `.owd/seo-gate-report.txt`, neve
 
 ## Launch (never do this without Orion's go-ahead)
 
-Set `SITE_INDEXABLE=true` and `PUBLIC_GTM_ID` in the Vercel **Production** environment only, attach the
-domain, redeploy, then run `npm run seo:live -- https://<production-host> --launch`.
+Set `SITE_INDEXABLE=true` and `PUBLIC_GTM_ID` in the Vercel **Production** environment only (never in
+GitHub), attach the domain, redeploy, then run `npm run seo:live -- https://<production-host> --launch`.
+`VERCEL_ENV=production` is what fails the deploy, and only for the criticals in the README SOP.

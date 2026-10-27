@@ -9,9 +9,10 @@ Full rules: `docs/build-standards.md` and `docs/post-build-seo-check.md`. Read `
 
 ## Gate
 - `npm run build` runs `astro build && node scripts/seo-gate.mjs`.
-- Previews ALWAYS publish: with SITE_INDEXABLE unset, critical issues print as "CRITICAL (preview: not blocking)" and the build succeeds.
-- Only launch is blocked: SITE_INDEXABLE=true (Vercel Production only) fails the build on any critical issue.
-- Before finishing any task run `npm run seo:strict` and fix every critical item. Never weaken the gate to pass.
+- Non-production (local, preview, staging, PR Action) prints every issue as a warning and exits 0.
+- `VERCEL_ENV=production` fails only for the criticals in the README SOP (render, noindex vs `SITE_INDEXABLE`, wrong canonical/sitemap domain, broken links and key-page 404s, placeholder output, dead forms, secrets, missing favicon, missing branded 404). GTM/GA4/pixel, titles, descriptions, OG, alt, and schema are warnings.
+- `SITE_INDEXABLE=true` only in Vercel Production on launch day. Never set it, or `VERCEL_ENV`, in GitHub. The PR Action must not fail on warnings.
+- If you touch `scripts/`, run `npm run test:gate`.
 
 ## Must
 - All business facts come from `src/config/site.ts` only. Never hand-type NAP or phone numbers into pages.

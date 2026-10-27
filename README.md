@@ -20,8 +20,8 @@ It contains **no client data**. Every value in `src/config/site.ts` is a clearly
 4. Edit services in `src/data/services.ts` (one page each at `/services/<slug>/`) and towns in
    `SITE.areaServed` (one page each at `/service-area/<slug>/`). Write real, unique copy.
 5. In Vercel, **Add New > Project**, import the new repo. Framework: Astro. Leave `SITE_INDEXABLE` unset.
-   Every deploy is a noindexed preview.
-6. Run `npm run seo:strict` locally (or read the PR check) and fix every critical item before review.
+   Every deploy is a noindexed preview. Set environment variables in Vercel, not in GitHub.
+6. Run `npm run build` and read the warnings. They do not fail a local or preview build.
 7. After deploy: `npm run seo:live -- https://<project>.vercel.app --expect-host <production host>`.
 
 ## Preview vs launch
@@ -33,87 +33,102 @@ It contains **no client data**. Every value in `src/config/site.ts` is a clearly
 | `robots.txt` | `Disallow: /` | `Allow: /` + `Sitemap:` line |
 | `X-Robots-Tag` | `noindex, nofollow` on `*.vercel.app` (vercel.json) | still on `*.vercel.app` only; never on the real domain |
 | GTM | never rendered | rendered when `PUBLIC_GTM_ID` is set |
-| SEO gate | reports critical issues as `CRITICAL (preview: not blocking)`, **build succeeds** | **any critical issue fails the build** |
+| SEO gate | every issue is a **warning**, build **exits 0** | **fails only** on the production criticals below |
 
-**Previews always publish. Only launch is blocked.**
+`SITE_INDEXABLE` changes indexing. It does not, by itself, pass or fail the gate.
+
+## SEO gate SOP
+
+Set these in **Vercel → Project → Settings → Environment Variables**. Do not set them in GitHub. The PR Action forces `VERCEL_ENV=preview` and always exits 0.
+
+| Variable | Where | What it does |
+|---|---|---|
+| `VERCEL_ENV` | Set by Vercel. `production` only on Production deploys. Preview and staging are not production. | **The only switch that can fail the build.** Anything other than `production` (local, PR Action, preview, staging) prints every issue as a warning and exits 0. |
+| `SITE_INDEXABLE` | Unset everywhere. Set `true` **only in the Production environment, on launch day**, after Orion's go-ahead. | Turns noindex off, switches `robots.txt` to `Allow: /`, and allows GTM to render. Does not decide the exit code. |
+| `PUBLIC_GTM_ID` | Production, when the client has a container (`GTM-XXXX`). | Optional. A missing or malformed GTM, GA4, or pixel ID is a warning. |
+| `PUBLIC_GA4_ID` | Only if the client tags GA4 directly (`G-XXXX`). Usually GA4 lives inside GTM, so leave this unset. | A malformed value is a warning. |
+
+Check the production rules locally before launch day:
+
+```bash
+npm run seo:prod-check
+```
+
+That builds, then runs the gate with `VERCEL_ENV=production`. Fix every `FAIL` line. The line says what broke and how to fix it.
+
+### Fails a production build only
+
+1. **Build or page did not render** (`render-failure`). The homepage or a built file is missing or is an error page. Fix the build error and run `npm run build` again.
+2. **`SITE_INDEXABLE=true` but noindex is still on** (`noindex-on-launch`, `robots-disallow-launch`, `x-robots-on-real-domain`). A real page still has a robots noindex meta, `robots.txt` still has `Disallow: /`, or `vercel.json` sends `X-Robots-Tag: noindex` on the live domain. The 404 may stay noindex. The `*.vercel.app` header must stay.
+3. **`SITE_INDEXABLE` is not true, but the site is indexable** (`preview-indexable`, `robots-preview-open`). A page is missing `<meta name="robots" content="noindex">`, or `robots.txt` does not disallow everything.
+4. **Canonical or sitemap URL on the wrong domain** (`canonical-host`, `sitemap-host`). The host is `vercel.app` or is not `SITE.url`. Set `SITE.url` to the real https origin and rebuild.
+5. **Broken internal link, or a key page 404s** (`broken-internal-link`, `key-page-missing`, `sitemap-404`). A link or asset points at a file that was not built, or `/`, `/about/`, `/contact/`, or `/services/` is missing.
+6. **Placeholder copy in the built pages** (`placeholder-output`): the word `TODO`, `lorem ipsum`, a `555` phone number, `example.com`, or a `#TODO` link. Replace them in `src/config/site.ts` and the page files.
+7. **Form or booking control with nowhere to go** (`dead-destination`): `href` or `action` is empty or `#`.
+8. **Secret or API key in the built files** (`secret-exposed`), including a published `.env`. Remove it, rotate the key, and use Vercel env vars.
+9. **Missing favicon** (`favicon-missing`): `public/favicon.ico` did not make it into the build.
+10. **Missing branded 404** (`branded-404-missing`): no `dist/404.html`, or the page does not show the business name and header.
+
+### Warnings only (never fail the build)
+
+GTM, GA4, and pixel IDs (missing or malformed). Meta titles and descriptions. Open Graph and Twitter tags. Image alt text, dimensions, and hotlinks. Schema / JSON-LD. Speed, CLS, and other performance notes. A privacy page. Contrast and tap targets. Stray files that are not secrets. Phone mismatches that are not a `555` placeholder. Everything else the gate prints.
 
 ### How launch works
-1. Get Orion's go-ahead. Make sure `npm run seo:launch-check` passes locally (a launch-mode build).
-2. In Vercel > Project > Settings > Environment Variables, set **for Production only**:
-   `SITE_INDEXABLE=true` and `PUBLIC_GTM_ID=GTM-XXXXXXX` (the client's container).
-3. Attach the domain (both apex and www; redirect the non-canonical one to `SITE.url`'s host).
-4. **Redeploy** production. If the gate finds a critical issue, the deploy fails and the old one stays live.
-5. Run the live check on the real domain: `npm run seo:live -- https://www.clientdomain.com --launch`.
-   Then do Stage 2 of `docs/post-build-seo-check.md` (GSC sitemap submit, URL inspection, analytics, forms).
+1. Get Orion's go-ahead. Run `npm run seo:prod-check` and clear every `FAIL` line.
+2. In Vercel, **Production only**: `SITE_INDEXABLE=true` and `PUBLIC_GTM_ID=GTM-XXXXXXX` (the client's container). Do not add these in GitHub.
+3. Attach the domain (apex and www; redirect the non-canonical host to `SITE.url`).
+4. **Redeploy** production. Vercel sets `VERCEL_ENV=production` on that deploy. A `FAIL` stops the deploy and the previous one stays live. Preview deploys still publish.
+5. Run `npm run seo:live -- https://www.clientdomain.com --launch`, then Stage 2 of `docs/post-build-seo-check.md`.
 
 ## Scripts
 
 | Script | What it does |
 |---|---|
-| `npm run build` | `astro build && node scripts/seo-gate.mjs` (Vercel runs this) |
-| `npm run seo:strict` | build + gate that fails on any critical issue regardless of the flag (used by the PR Action) |
-| `npm run seo:launch-check` | build + gate in launch mode (`SITE_INDEXABLE=true`) |
+| `npm run build` | `astro build && node scripts/seo-gate.mjs`. Local and preview: warnings, exit 0. |
+| `npm run seo:prod-check` | same build, then the gate with `VERCEL_ENV=production` (the launch-day check) |
+| `npm run seo:launch-check` | build with `SITE_INDEXABLE=true` so you can read the indexable HTML. Does not fail unless you also set `VERCEL_ENV=production`. |
+| `npm run seo:strict` | same as `npm run build` (older command name; it does not add a stricter exit code) |
 | `npm run seo:gate` | re-run the gate on an existing `dist/` |
-| `npm run seo:live -- <url>` | live post-deploy check (Node port of `seo-quick-audit.py` + the gate's page checks): sitemap + crawl, headers, robots, 404, stray files, broken links |
-| `npm run test:gate` | self-test: deliberate breaks must be flagged (see proof below) |
+| `npm run seo:live -- <url>` | live check. Preview exits 0. `--launch` fails only on the same production criticals. |
+| `npm run test:gate` | self-test of both modes (temp copies; source is not modified) |
 
-The gate report prints to the build log and is saved to `.owd/seo-gate-report.txt` / `.json`
-(outside `dist/`, never deployed). The GitHub Action (`.github/workflows/seo-gate.yml`) runs
-`seo:strict` + `test:gate` on PRs as a **non-blocking** status check. Do not make it a required check.
+The report prints in the build log and is saved to `.owd/seo-gate-report.txt` / `.json`
+(outside `dist/`, never deployed). The GitHub Action (`.github/workflows/seo-gate.yml`) runs on
+pull requests with `VERCEL_ENV=preview`. Site warnings do not fail that job. Do not set
+`VERCEL_ENV=production` or `SITE_INDEXABLE` in GitHub.
 
-## What the gate checks
+The gate still reports titles, descriptions, canonical shape, language, schema, phone mismatches, hotlinked images, alt text, headings, and stray files. Off production those are warnings. On production, only the ten items in the SOP above fail the build. Broken links are in that list. A missing `<title>`, a hotlinked image, or a mismatched phone that is not a `555` number stays a warning.
 
-**Critical** (reported on previews, blocks launch builds and `seo:strict`):
-- missing/empty `<title>`, more than one `<title>`, generic homepage title ("Home", "Logo", brand only)
-- canonical missing, not absolute, more than one, not on the production host, not self-referencing, or breaking the trailing-slash policy
-- `<html lang>` missing or not matching `SITE.lang`
-- sitemap missing, or listing the 404 page, noindexed pages, missing pages, other hosts, or wrong slash form
-- `robots.txt` missing from the build
-- no LocalBusiness JSON-LD, invalid JSON-LD, or a JSON-LD `telephone` that doesn't match `SITE.phone`
-- any `tel:` link or visible phone number that doesn't match `SITE.phone` (a `SITE.trackingPhone` is allowed only on click-to-call links, never in the footer or schema)
-- images hotlinked from another host (`img`, `srcset`, `source`, CSS `url()`)
-- broken internal links or assets (links to pages that don't exist)
-- stray working files in `dist/` (`.md`, `.pdf`, `.env`, backups, `inspiration/`, `docs/`, `src/`, `README`, etc.)
-- preview mode: a page without `noindex`, `robots.txt` without `Disallow: /`, no `X-Robots-Tag` rule in `vercel.json`
-- launch mode only: placeholder values in `site.ts`, `noindex` left on real pages, `Disallow: /` or no `Sitemap:` line in robots.txt, missing GTM ID / snippet, preview-only widgets (Feedbucket, Marker.io, Vercel toolbar...), an unscoped `X-Robots-Tag` rule, `trailingSlash` mismatch
-
-**Warnings** (never block):
-- title outside 30 to 60 chars; description missing or outside 140 to 160; em dash in description; duplicate titles/descriptions
-- not exactly one `<h1>`
-- content images without `alt`; images without `width`/`height`
-- leftover placeholder/TODO/lorem/draft/"replace this" text
-- OG/Twitter incomplete, no favicon, no BreadcrumbList on inner pages, no Service schema on service pages, FAQPage questions not visible, `aggregateRating`/reviews in schema (verify they're real)
-- indexable page missing from the sitemap, internal links not in final URL form, missing `#anchors`, GTM on a preview, placeholder config (on previews)
-
-**What the gate can't judge** (manual, see `docs/post-build-seo-check.md`): whether facts match the GBP, whether
-copy is unique and good, whether forms deliver leads, Core Web Vitals, visual design, Deployment Protection,
-and GSC/GA4 setup.
+Speed, CLS, contrast, tap targets, and a privacy page are not launch blockers. Confirm those by hand with `docs/post-build-seo-check.md`. The gate also cannot judge whether facts match the Google Business Profile, whether the copy is any good, or whether a form actually delivers a lead.
 
 ## Proof the gate works
 
-`npm run test:gate` output (each break runs in a temp copy, so the real source is never changed and every break is reverted automatically):
+`npm run test:gate` builds temp copies (the repo source is not modified) and checks both modes. Locally, `SITE_INDEXABLE=true` with no GTM id still exits 0. `VERCEL_ENV=production` is what blocks.
 
-| Break | Rule | Preview build (npm run build) | Strict gate (seo:strict / launch) |
-|---|---|---|---|
-| clean template | n/a | exit 0 yes | exit 0 (passes) |
-| LAUNCH build of the untouched template (SITE_INDEXABLE=true) | config-placeholder, gtm-id-missing, gtm-missing | n/a | exit 1 (launch blocked) |
-| LAUNCH build with filled test config + GTM ID | n/a | n/a | exit 0 (launch passes); robots: "User-agent: * / Allow: / / Sitemap: https://www.acme-test-plumbing.com/sitemap-index.xml"; meta noindex: absent; GTM: present |
-| remove the canonical tag | canonical-missing | exit 0, labeled critical: yes | exit 1, FAIL [canonical-missing]: yes |
-|  |  |  |   FAIL      [canonical-missing] missing canonical |
-| hard-code a mismatched phone in the footer | tel-mismatch | exit 0, labeled critical: yes | exit 1, FAIL [tel-mismatch]: yes |
-|  |  |  |   FAIL      [tel-mismatch] tel: link tel:+15555550199 does not match config phone +15555550100 |
-| remove the <title> | title-missing | exit 0, labeled critical: yes | exit 1, FAIL [title-missing]: yes |
-|  |  |  |   FAIL      [title-missing] missing or empty <title> |
-| hotlink an image from another host | image-hotlink | exit 0, labeled critical: yes | exit 1, FAIL [image-hotlink]: yes |
-|  |  |  |   FAIL      [image-hotlink] image hotlinked from another host: old-site.example.net (img: https://old-site.example.net/wp-content/uploads/van.jpg) |
-| link to a page that does not exist | broken-internal-link | exit 0, labeled critical: yes | exit 1, FAIL [broken-internal-link]: yes |
-|  |  |  |   FAIL      [broken-internal-link] internal link/asset to a missing page: link /services/does-not-exist/ |
-| leave a working file in public/ | stray-file | exit 0, labeled critical: yes | exit 1, FAIL [stray-file]: yes |
-|  |  |  |   FAIL      [stray-file] working/internal file deployed: /notes.md |
-| wrong html lang | lang-mismatch | exit 0, labeled critical: yes | exit 1, FAIL [lang-mismatch]: yes |
-|  |  |  |   FAIL      [lang-mismatch] html lang="es" but config lang is "en" |
-
-SELF-TEST PASSED
+| Case | Rule | Result |
+|---|---|---|
+| template, local / preview (no VERCEL_ENV) | placeholder-output | exit 0 (warn, not blocked) |
+| template, SITE_INDEXABLE=true, VERCEL_ENV unset, no GTM | placeholder-output | exit 0 (still not blocked) |
+| template, VERCEL_ENV=production | placeholder-output | exit 1 (blocked, Fix: present) |
+| production + real config + SITE_INDEXABLE=true, no GTM | gtm-id-missing | exit 0 (GTM is a warning) |
+| inject noindex while indexable | noindex-on-launch | exit 1 (production FAIL) |
+| canonical on vercel.app | canonical-host | exit 1 (production FAIL) |
+| sitemap URL on the wrong domain | sitemap-host | exit 1 (production FAIL) |
+| robots.txt still disallows everything | robots-disallow-launch | exit 1 (production FAIL) |
+| X-Robots-Tag on the real domain | x-robots-on-real-domain | exit 1 (production FAIL) |
+| broken internal link | broken-internal-link | exit 1 (production FAIL) |
+| key page missing | key-page-missing | exit 1 (production FAIL) |
+| homepage did not render | render-failure | exit 1 (production FAIL) |
+| TODO left in the page | placeholder-output | exit 1 (production FAIL) |
+| form action is # | dead-destination | exit 1 (production FAIL) |
+| live secret in the HTML | secret-exposed | exit 1 (production FAIL) |
+| favicon.ico removed | favicon-missing | exit 1 (production FAIL) |
+| branded 404 removed | branded-404-missing | exit 1 (production FAIL) |
+| title removed (warning only) | title-missing | exit 0 (warning, production still passes) |
+| same broken link, VERCEL_ENV=preview | broken-internal-link | exit 0 (warning only) |
+| production, SITE_INDEXABLE unset, real config | n/a | exit 0 (noindex is correct) |
+| production, flag off, but page has no noindex | preview-indexable | exit 1 |
+| production, flag off, robots.txt allows crawling | robots-preview-open | exit 1 |
 
 ## Project layout
 
@@ -127,6 +142,7 @@ src/pages/                /, /services/, /services/<slug>/, /service-area/, /ser
 scripts/seo-gate.mjs      build gate (dist/)
 scripts/seo-live.mjs      live check (deployed URL)
 scripts/lib/seo-core.mjs  shared checks, no dependencies
+scripts/lib/seo-blockers.mjs  production-only critical rules and fix text
 docs/                     standards (not deployed)
 vercel.json               trailingSlash, X-Robots-Tag on *.vercel.app, security headers
 ```

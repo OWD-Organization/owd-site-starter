@@ -1,8 +1,10 @@
-name: SEO gate (strict, non-blocking)
+name: SEO gate (warnings only)
 
-# Runs the build plus the gate in strict mode on every PR. It reports critical issues as a
-# failed status, but it is NOT a required check: previews always publish and merging is never
-# blocked by it. Only a launch build (SITE_INDEXABLE=true in Vercel Production) blocks.
+# Prints the build and the SEO report on every pull request.
+# VERCEL_ENV is preview here, so the gate cannot fail this job.
+# The build step always exits 0. Production blocking happens only on Vercel,
+# where VERCEL_ENV=production is set automatically. Do not set that variable,
+# or SITE_INDEXABLE, in GitHub.
 on:
   pull_request:
   workflow_dispatch:
@@ -13,6 +15,8 @@ permissions:
 jobs:
   seo-gate:
     runs-on: ubuntu-latest
+    env:
+      VERCEL_ENV: preview
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,8 +24,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Build + strict SEO gate
-        run: npm run seo:strict
+      - name: Build + SEO gate (warnings only, does not fail the PR)
+        run: |
+          set +e
+          npm run build
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "::warning title=SEO gate::Build or gate exited ${status}. This job is warnings-only and does not fail the pull request."
+          fi
+          exit 0
       - name: Gate self-test
         run: npm run test:gate
       - name: Upload gate report

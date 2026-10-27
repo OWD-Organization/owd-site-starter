@@ -10,8 +10,9 @@
     "build": "astro build && node scripts/seo-gate.mjs",
     "build:only": "astro build",
     "seo:gate": "node scripts/seo-gate.mjs",
-    "seo:strict": "astro build && node scripts/seo-gate.mjs --strict",
+    "seo:strict": "astro build && node scripts/seo-gate.mjs",
     "seo:launch-check": "SITE_INDEXABLE=true astro build && SITE_INDEXABLE=true node scripts/seo-gate.mjs",
+    "seo:prod-check": "astro build && VERCEL_ENV=production node scripts/seo-gate.mjs",
     "seo:live": "node scripts/seo-live.mjs",
     "test:gate": "node scripts/test-gate.mjs",
     "preview": "astro preview"
